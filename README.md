@@ -19,7 +19,7 @@ through it (to `os.Stderr`).
 If you have a simple `http.Client`, then you can add `CurlTransport` like this:
 
 ```go
-ct := Mew()
+ct := httpdebug.New()
 c := &http.Client{Transport: ct}
 ...
 ```
