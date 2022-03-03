@@ -12,8 +12,6 @@ import (
 	"strings"
 	"testing"
 	"testing/iotest"
-
-	"golang.org/x/oauth2"
 )
 
 func TestNew(t *testing.T) {
@@ -389,11 +387,8 @@ func TestBareDo_GoodDebugRequestWithCustomTransport(t *testing.T) {
 		fmt.Fprint(w, expectedBody)
 	})
 
-	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: "SECRET"},
-	)
-	tc := oauth2.NewClient(oauth2.NoContext, ts)
-	ct := New(WithTransport(tc.Transport))
+	ts := http.DefaultTransport
+	ct := New(WithTransport(ts))
 	client.Transport = ct
 
 	req, err := http.NewRequest("GET", url+"/test-url", nil)
