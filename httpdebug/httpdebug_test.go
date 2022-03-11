@@ -12,6 +12,8 @@ import (
 	"strings"
 	"testing"
 	"testing/iotest"
+
+	"golang.org/x/oauth2"
 )
 
 func TestNew(t *testing.T) {
@@ -387,13 +389,23 @@ func TestBareDo_GoodDebugRequestWithCustomTransport(t *testing.T) {
 		fmt.Fprint(w, expectedBody)
 	})
 
-	ts := http.DefaultTransport
-	ct := New(WithTransport(ts))
-	client.Transport = ct
+	ct := New()
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: "SECRET"},
+	)
+	tc := &oauth2.Transport{Source: ts, Base: ct}
+	client.Transport = tc
 
 	req, err := http.NewRequest("GET", url+"/test-url", nil)
 	if err != nil {
 		t.Fatalf("http.NewRequest returned error: %v", err)
+	}
+
+	var curlCmd string
+	logger = func(v ...interface{}) {
+		if s, ok := v[0].(string); ok {
+			curlCmd = s
+		}
 	}
 
 	resp, err := client.Do(req)
@@ -410,5 +422,14 @@ func TestBareDo_GoodDebugRequestWithCustomTransport(t *testing.T) {
 	}
 	if err := resp.Body.Close(); err != nil {
 		t.Fatalf("resp.Body.Close() returned error: %v", err)
+	}
+
+	wantCurlCmd := fmt.Sprintf(`curl -X GET \
+  %v/test-url \
+  -H 'Authorization: <REDACTED>'`, url)
+
+	if curlCmd != wantCurlCmd {
+		t.Errorf("log.Println = (len=%v)\n%v\nwant: (len=%v)\n%v",
+			len(curlCmd), curlCmd, len(wantCurlCmd), wantCurlCmd)
 	}
 }

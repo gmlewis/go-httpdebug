@@ -39,10 +39,9 @@ ctx := context.Background()
 ts := oauth2.StaticTokenSource(
 	&oauth2.Token{AccessToken: token},
 )
-tc := oauth2.NewClient(ctx, ts)
+tc := &oauth2.Transport{Source: ts, Base: dbg.New()}
 
-ct := dbg.New(dbg.WithTransport(tc.Transport))
-client := github.NewClient(ct.Client())
+client := github.NewClient(&http.Client{Transport: tc})
 ```
 
 ----------------------------------------------------------------------

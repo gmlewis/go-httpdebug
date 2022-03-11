@@ -13,10 +13,9 @@
 //   ts := oauth2.StaticTokenSource(
 //   	&oauth2.Token{AccessToken: token},
 //   )
-//   tc := oauth2.NewClient(ctx, ts)
+//   tc := &oauth2.Transport{Source: ts, Base: dbg.New()}
 //
-//   ct := dbg.New(dbg.WithTransport(tc.Transport))
-//   client := github.NewClient(ct.Client())
+//   client := github.NewClient(&http.Client{Transport: tc})
 //   ...
 package httpdebug
 
@@ -99,13 +98,16 @@ func WithTransport(transport http.RoundTripper) func(*CurlTransport) {
 	}
 }
 
+// logger is user strictly for test purposes.
+var logger = log.Println
+
 // RoundTrip implements the http.RoundTripper interface.
 func (t *CurlTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	s, err := t.dumpRequestAsCurl(req)
 	if err != nil {
 		return nil, err
 	}
-	log.Println(s)
+	logger(s)
 
 	// Make the HTTP request.
 	return t.transport().RoundTrip(req)
