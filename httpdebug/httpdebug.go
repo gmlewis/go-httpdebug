@@ -181,7 +181,7 @@ func (t *CurlTransport) dumpRequestAsCurl(req *http.Request) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		if buf != nil {
+		if len(buf) > 0 {
 			lines = append(lines, fmt.Sprintf("-d '%v'", escapeSingleQuote(string(buf))))
 		}
 		req.Body = ioutil.NopCloser(bytes.NewBuffer(buf))
