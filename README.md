@@ -24,6 +24,16 @@ c := &http.Client{Transport: ct}
 ...
 ```
 
+or like this:
+
+```go
+c := &http.Client{Timeout: timeout}
+if debug {
+  ct := httpdebug.New(httpdebug.WithTransport(c.Transport))
+  c = ct.Client()
+}
+```
+
 ## Usage with existing Transport
 
 If your client already uses a transport, you can inject it like this:
