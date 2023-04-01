@@ -41,7 +41,7 @@ If your client already uses a transport, you can inject it like this:
 ```go
 import (
   dbg "github.com/gmlewis/go-httpdebug/httpdebug"
-  "github.com/google/go-github/v43/github"
+  "github.com/google/go-github/v50/github"
   "golang.org/x/oauth2"
 )
 ...
