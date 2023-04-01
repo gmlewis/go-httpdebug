@@ -8,7 +8,7 @@ While maintaining the [github.com/google/go-github](https://github.com/google/go
 repo, I've realized that the vast majority of reported "issues" actually could be
 resolved by the user of the repo if they had an easy way to duplicate the
 GitHub v3 API call using the equivalent `curl` command. However, it is not always
-a simple matter to figure out that that command should actually be.
+a simple matter to figure out what that command should actually be.
 
 This repo provides a simple `http.RoundTripper` that, when added as an additional
 `Transport`, will dump out the equivalent `curl` command for every request made
