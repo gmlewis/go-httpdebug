@@ -2,21 +2,22 @@
 // of HTTP requests.
 //
 // Example usage:
-//   import (
-//     dbg "github.com/gmlewis/go-httpdebug/httpdebug"
-//     "github.com/google/go-github/v43/github"
-//     "golang.org/x/oauth2"
-//   )
 //
-//   ...
-//   ctx := context.Background()
-//   ts := oauth2.StaticTokenSource(
-//   	&oauth2.Token{AccessToken: token},
-//   )
-//   tc := &oauth2.Transport{Source: ts, Base: dbg.New()}
+//	import (
+//	  dbg "github.com/gmlewis/go-httpdebug/httpdebug"
+//	  "github.com/google/go-github/v43/github"
+//	  "golang.org/x/oauth2"
+//	)
 //
-//   client := github.NewClient(&http.Client{Transport: tc})
-//   ...
+//	...
+//	ctx := context.Background()
+//	ts := oauth2.StaticTokenSource(
+//		&oauth2.Token{AccessToken: token},
+//	)
+//	tc := &oauth2.Transport{Source: ts, Base: dbg.New()}
+//
+//	client := github.NewClient(&http.Client{Transport: tc})
+//	...
 package httpdebug
 
 import (
@@ -33,6 +34,12 @@ import (
 // CurlTransport is an http.RoundTripper that dumps HTTP requests
 // as their `curl` equivalents.
 type CurlTransport struct {
+	// RedactEntireJWT causes a JWT (either in the 'Authorization' header or within
+	// any header that contains the letters 'jwt) to be completely redacted.
+	// The default is to partially-redact a JWT by redacting only its signature (which
+	// causes the JWT to be completely unusable).
+	RedactEntireJWT bool
+
 	// SecretHeaders contains a slice of secret header keys (case insensitive)
 	// that should be redacted.
 	// Default: ["authorization"].
@@ -147,8 +154,11 @@ func (t *CurlTransport) sanitizeURL(uri *url.URL) string {
 }
 
 // dumpRequestAsCurl dumps an outbound request as a curl command to a string
-// for debugging purposes. It redacts any "Authorization" string in the
-// header or client secret in the URL in order to prevent logging secrets.
+// for debugging purposes. When RedactEntireJWT is true, it redacts any "Authorization" string in the
+// header or client secret in the URL in order to prevent logging secrets, and does
+// the same for any header that contains the letters 'jwt'.
+// If RedactEntireJWT is false (the default), it will partially redact strings that
+// appear to be JWTs, both in headers (with 'jwt' in their name) and in the "Authorization" header.
 func (t *CurlTransport) dumpRequestAsCurl(req *http.Request) (string, error) {
 	lines := []string{
 		fmt.Sprintf("curl -X %v", req.Method),
@@ -156,9 +166,18 @@ func (t *CurlTransport) dumpRequestAsCurl(req *http.Request) (string, error) {
 	}
 
 	var headers []string
-	redactSecret := func(key string) bool {
+	redactSecret := func(key, value string) bool {
 		for _, secret := range t.SecretHeaders {
-			if strings.EqualFold(key, secret) {
+			keyHasJWT := strings.Contains(strings.ToLower(key), "jwt")
+			if strings.EqualFold(key, secret) || keyHasJWT {
+				if !t.RedactEntireJWT {
+					parts := strings.Split(value, ".")
+					if len(parts) == 3 {
+						headers = append(headers, fmt.Sprintf("-H '%v: %v.%v.<REDACTED>'", key, parts[0], parts[1]))
+						return true
+					}
+				}
+
 				headers = append(headers, fmt.Sprintf("-H '%v: <REDACTED>'", key))
 				return true
 			}
@@ -167,7 +186,7 @@ func (t *CurlTransport) dumpRequestAsCurl(req *http.Request) (string, error) {
 	}
 
 	for k, v := range req.Header {
-		if redactSecret(k) {
+		if redactSecret(k, strings.Join(v, ", ")) {
 			continue
 		}
 		headers = append(headers, fmt.Sprintf("-H '%v: %v'", k, escapeSingleQuote(strings.Join(v, ", "))))

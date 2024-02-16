@@ -222,10 +222,11 @@ func TestDumpRequestAsCurl(t *testing.T) {
 	}
 
 	tests := []struct {
-		name   string
-		req    *http.Request
-		header http.Header
-		want   string
+		name            string
+		redactEntireJWT bool
+		req             *http.Request
+		header          http.Header
+		want            string
 	}{
 		{
 			name: "GET request, no auth",
@@ -247,25 +248,43 @@ func TestDumpRequestAsCurl(t *testing.T) {
   -d '{"login":"l\'a"}'`,
 		},
 		{
-			name: "GET request, multiple accept, with auth",
+			name: "GET request, multiple accept, with auth (default)",
 			req:  mkReq("GET", "/foo", ""),
 			header: http.Header{
 				"Accept":        []string{"a'1", "a2", "a3"},
-				"AuthoRizaTion": []string{"Bearer ABCD0123"},
+				"AuthoRizaTion": []string{"Bearer abc.123.xyz"},
+				"X-User-Jwt":    []string{"abc.123.xyz"},
 			},
 			want: `curl -X GET \
   /foo \
   -H 'Accept: a\'1, a2, a3' \
-  -H 'AuthoRizaTion: <REDACTED>'`,
+  -H 'AuthoRizaTion: Bearer abc.123.<REDACTED>' \
+  -H 'X-User-Jwt: abc.123.<REDACTED>'`,
+		},
+		{
+			name:            "GET request, multiple accept, with auth with RedactEntireJWT",
+			redactEntireJWT: true,
+			req:             mkReq("GET", "/foo", ""),
+			header: http.Header{
+				"Accept":        []string{"a'1", "a2", "a3"},
+				"AuthoRizaTion": []string{"Bearer abc.123.xyz"},
+				"X-User-Jwt":    []string{"abc.123.xyz"},
+			},
+			want: `curl -X GET \
+  /foo \
+  -H 'Accept: a\'1, a2, a3' \
+  -H 'AuthoRizaTion: <REDACTED>' \
+  -H 'X-User-Jwt: <REDACTED>'`,
 		},
 	}
 
-	ct := New()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			for k, v := range tt.header {
 				tt.req.Header[k] = v
 			}
+			ct := New()
+			ct.RedactEntireJWT = tt.redactEntireJWT
 
 			got, err := ct.dumpRequestAsCurl(tt.req)
 			if err != nil {
