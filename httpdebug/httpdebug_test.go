@@ -231,20 +231,20 @@ func TestDumpRequestAsCurl(t *testing.T) {
 		{
 			name: "GET request, no auth",
 			req:  mkReq("GET", "/foo", ""),
-			want: `curl -X GET \
-  /foo`,
+			want: `curl -i -X GET \
+  '/foo'`,
 		},
 		{
 			name: "GET request, with client secret",
 			req:  mkReq("GET", "/foo?bar=5&client_secret=abc123", ""),
-			want: `curl -X GET \
-  /foo?bar=5&client_secret=REDACTED`,
+			want: `curl -i -X GET \
+  '/foo?bar=5&client_secret=REDACTED'`,
 		},
 		{
 			name: "POST request, no auth",
 			req:  mkReq("POST", "/foo", `{"login":"l'a"}`),
-			want: `curl -X POST \
-  /foo \
+			want: `curl -i -X POST \
+  '/foo' \
   -d '{"login":"l\'a"}'`,
 		},
 		{
@@ -255,8 +255,8 @@ func TestDumpRequestAsCurl(t *testing.T) {
 				"AuthoRizaTion": []string{"Bearer abc.123.xyz"},
 				"X-User-Jwt":    []string{"abc.123.xyz"},
 			},
-			want: `curl -X GET \
-  /foo \
+			want: `curl -i -X GET \
+  '/foo' \
   -H 'Accept: a\'1, a2, a3' \
   -H 'AuthoRizaTion: Bearer abc.123.<REDACTED>' \
   -H 'X-User-Jwt: abc.123.<REDACTED>'`,
@@ -270,8 +270,8 @@ func TestDumpRequestAsCurl(t *testing.T) {
 				"AuthoRizaTion": []string{"Bearer abc.123.xyz"},
 				"X-User-Jwt":    []string{"abc.123.xyz"},
 			},
-			want: `curl -X GET \
-  /foo \
+			want: `curl -i -X GET \
+  '/foo' \
   -H 'Accept: a\'1, a2, a3' \
   -H 'AuthoRizaTion: <REDACTED>' \
   -H 'X-User-Jwt: <REDACTED>'`,
@@ -443,8 +443,8 @@ func TestBareDo_GoodDebugRequestWithCustomTransport(t *testing.T) {
 		t.Fatalf("resp.Body.Close() returned error: %v", err)
 	}
 
-	wantCurlCmd := fmt.Sprintf(`curl -X GET \
-  %v/test-url \
+	wantCurlCmd := fmt.Sprintf(`curl -i -X GET \
+  '%v/test-url' \
   -H 'Authorization: <REDACTED>'`, url)
 
 	if curlCmd != wantCurlCmd {

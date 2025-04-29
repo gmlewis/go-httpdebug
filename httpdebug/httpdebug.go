@@ -161,8 +161,8 @@ func (t *CurlTransport) sanitizeURL(uri *url.URL) string {
 // appear to be JWTs, both in headers (with 'jwt' in their name) and in the "Authorization" header.
 func (t *CurlTransport) dumpRequestAsCurl(req *http.Request) (string, error) {
 	lines := []string{
-		fmt.Sprintf("curl -X %v", req.Method),
-		t.sanitizeURL(req.URL),
+		fmt.Sprintf("curl -i -X %v", req.Method),
+		"'" + t.sanitizeURL(req.URL) + "'",
 	}
 
 	var headers []string
